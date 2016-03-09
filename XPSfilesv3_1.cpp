@@ -6,15 +6,6 @@
  * 				efren.cabrera@uabc.edu.mx										*
  *------------------------------------------------------------------------------*/
  
- /*-----------------------------------------------------------------------------*
- * UPDATE                                                                       *
- * File Name:	XPSfilesV3														*
- * Creation: 	4.6.16															*
- * Purpose: 	Implement OriginLAB import operation for CASA XPS exported files*
- * Authors:     Diego Armando Mondragon Robledo mondragond@uabc.edu.mx          *
- *              Luis Enrique Arias Hernandez ariasl@uabc.edu.mx                 *
- *              Ramón Fermín Díaz   rfermin@gmail.com                           *
- *------------------------------------------------------------------------------*/
 
 #include <Origin.h>
 
@@ -272,13 +263,17 @@ string XPSExperimentImporter::getCompound(string experimentName)
 	
 	int startingIndex = experimentName.ReverseFind('_');	
 	int finalIndex = experimentName.ReverseFind(':');
-	startingIndex = startingIndex + 1;
 	
-	for(startingIndex; startingIndex < finalIndex; startingIndex++)
+	if(startingIndex != -1 && finalIndex != -1)
 	{
-		string temp = experimentName[startingIndex];
-		name += temp;
-	}	
+		startingIndex = startingIndex + 1;
+	
+		for(startingIndex; startingIndex < finalIndex; startingIndex++)
+		 {
+			string temp = experimentName[startingIndex];
+			name += temp;
+		 }	
+	}
 	
 	return name;
 }
@@ -306,8 +301,8 @@ void XPSExperimentImporter::bindExperimentData(WorksheetPage experimentWorksheet
 	Worksheet worksheet(worksheetPageName);
 	
 	int numberOfColumns = experimentWorksheet.GetNumCols();
-	int experimentWorksheetColumnIndex = 0;
-	int layerWorksheetColumnIndex = 0;
+
+	int layerIndex = 0;
 	vector<string> addedLayers();
 	
 	
@@ -327,47 +322,28 @@ void XPSExperimentImporter::bindExperimentData(WorksheetPage experimentWorksheet
 		
 		 if(column.GetComments() == experimentName)
 		   {		
-		         experimentWorksheetPage.Layers(0).SetName(experimentName);
-		         addedLayers.Add(experimentName);
-		         
 		         if(compound != "")
 		         {
 		         	if(experimentNameIsNotAlreadyAdded(addedLayers, compound))
 		         	{
 		         		if(longColumnName.Find(compound) > -1)
 		         		{
-		         			int layerIndex = experimentWorksheetPage.AddLayer();
+		         			Layer layer = experimentWorksheetPage.Layers(layerIndex);
+		         			
+		         			if(layer == NULL)
+								 layerIndex = experimentWorksheetPage.AddLayer();
+		         			
 							experimentWorksheetPage.Layers(layerIndex).SetName(compound);
 							
 							bindLayer(compound, experimentWorksheetPage.Layers(layerIndex), experimentName);
 							
 							addedLayers.Add(compound);
+							
+							layerIndex++;
 
 		         		}
 		         	}
 		         }
-		         	
-			     Column experimentWorksheetColumn(worksheet, experimentWorksheetColumnIndex);
-			     
-			     if(experimentWorksheetColumn == NULL)
-			     {
-			     	experimentWorksheetColumnIndex = worksheet.AddCol();
-			     	experimentWorksheetColumn = worksheet.Columns(experimentWorksheetColumnIndex);
-			     }
-			     
-			     if(column.GetLongName() == "B.E.")
-			     	experimentWorksheetColumn.SetType(OKDATAOBJ_DESIGNATION_X);
-			     
-			     experimentWorksheetColumn.SetLongName(column.GetLongName());
-			     experimentWorksheetColumn.SetUnits(column.GetUnits());
-			     
-			     Dataset experimentWorkSheetColumnDataSource(column);
-			     Dataset experimentWorkSheetColumnData(experimentWorksheetColumn);
-			     
-			     experimentWorkSheetColumnData = experimentWorkSheetColumnDataSource;
-			    
-			     
-			     experimentWorksheetColumnIndex++;
 		   }
 	}
 
